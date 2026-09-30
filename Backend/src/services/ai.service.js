@@ -1,7 +1,6 @@
 const { GoogleGenAI } = require("@google/genai")
 const { z } = require("zod")
 const { zodToJsonSchema } = require("zod-to-json-schema")
-const puppeteer = require("puppeteer")
 
 const ai = new GoogleGenAI({
     apiKey: process.env.GOOGLE_GENAI_API_KEY
@@ -50,8 +49,7 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
         }
     })
 
-    console.log(JSON.parse
-     (response.text))
+    return JSON.parse(response.text)
 }
 
 
@@ -112,4 +110,4 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
 
 // }
 
-// module.exports = { generateInterviewReport, generateResumePdf }
+module.exports = { generateInterviewReport }
