@@ -1,4 +1,5 @@
 const pdfParse = require("pdf-parse")
+const mammoth = require("mammoth")
 const { generateInterviewReport, generateResumePdf } = require("../services/ai.service")
 const interviewReportModel = require("../models/interviewReport.model")
 
@@ -10,18 +11,32 @@ const interviewReportModel = require("../models/interviewReport.model")
  */
 async function generateInterViewReportController(req, res) {
 
-    const resumeContent = await (new pdfParse.PDFParse(Uint8Array.from(req.file.buffer))).getText()
+    let resume = ""
+    if (req.file?.originalname.toLowerCase().endsWith(".pdf")) {
+        const resumeContent = await (new pdfParse.PDFParse(Uint8Array.from(req.file.buffer))).getText()
+        resume = resumeContent.text || ""
+    } else if (req.file) {
+        const resumeContent = await mammoth.extractRawText({ buffer: req.file.buffer })
+        resume = resumeContent.value || ""
+    }
+
     const { selfDescription, jobDescription } = req.body
 
+    if (!jobDescription?.trim() || (!resume.trim() && !selfDescription?.trim())) {
+        return res.status(400).json({
+            message: "A job description and either a PDF resume or experience summary are required."
+        })
+    }
+
     const interViewReportByAi = await generateInterviewReport({
-        resume: resumeContent.text,
+        resume,
         selfDescription,
         jobDescription
     })
 
     const interviewReport = await interviewReportModel.create({
         user: req.user.id,
-        resume: resumeContent.text,
+        resume,
         selfDescription,
         jobDescription,
         ...interViewReportByAi
