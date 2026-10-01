@@ -1,6 +1,7 @@
 import React,{useState} from 'react'
 import { useNavigate, Link } from 'react-router'
 import { useAuth } from '../hooks/useAuth'
+import { toast } from 'sonner'
 
 const Register = () => {
 
@@ -17,9 +18,14 @@ const Register = () => {
         setErrorMessage("")
         try {
             const user = await handleRegister({ username, email, password })
-            if (user) navigate("/")
+            if (user) {
+                toast.success('Account created successfully.')
+                navigate("/")
+            }
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || "Unable to create your account. Please try again.")
+            const message = error.response?.data?.message || "Unable to create your account. Please try again."
+            setErrorMessage(message)
+            toast.error(message)
         }
     }
 

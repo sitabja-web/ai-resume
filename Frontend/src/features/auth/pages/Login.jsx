@@ -2,6 +2,7 @@ import React,{useState} from 'react'
 import { useNavigate, Link } from 'react-router'
 import "../auth.form.scss"
 import { useAuth } from '../hooks/useAuth'
+import { toast } from 'sonner'
 
 const Login = () => {
 
@@ -17,9 +18,14 @@ const Login = () => {
         setErrorMessage("")
         try {
             const user = await handleLogin({ email, password })
-            if (user) navigate('/')
+            if (user) {
+                toast.success('Signed in successfully.')
+                navigate('/')
+            }
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || "Unable to sign in. Please try again.")
+            const message = error.response?.data?.message || "Unable to sign in. Please try again."
+            setErrorMessage(message)
+            toast.error(message)
         }
     }
 

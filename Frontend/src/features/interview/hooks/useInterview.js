@@ -1,10 +1,11 @@
-import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf } from "../services/interview.api"
+import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf, deleteInterviewReport } from "../services/interview.api"
 import { useContext, useEffect } from "react"
 import { InterviewContext } from "../interview.context"
 import { useParams } from "react-router"
+import { toast } from "sonner"
 
 
-export const useInterview = () => {
+export const useInterview = ({ enabled = true } = {}) => {
 
     const context = useContext(InterviewContext)
     const { interviewId } = useParams()
@@ -17,17 +18,13 @@ export const useInterview = () => {
 
     const generateReport = async ({ jobDescription, selfDescription, resumeFile }) => {
         setLoading(true)
-        let response = null
         try {
-            response = await generateInterviewReport({ jobDescription, selfDescription, resumeFile })
+            const response = await generateInterviewReport({ jobDescription, selfDescription, resumeFile })
             setReport(response.interviewReport)
-        } catch (error) {
-            console.log(error)
+            return response.interviewReport
         } finally {
             setLoading(false)
         }
-
-        return response.interviewReport
     }
 
     const getReportById = async (interviewId) => {
@@ -60,33 +57,45 @@ export const useInterview = () => {
         }
     }
 
+    const deleteReport = async (interviewId) => {
+        await deleteInterviewReport(interviewId)
+        setReports(currentReports => currentReports.filter(reportItem => reportItem._id !== interviewId))
+    }
+
     const getResumePdf = async (interviewReportId) => {
         setLoading(true)
-        let response = null
         try {
-            response = await generateResumePdf({ interviewReportId })
-            const url = window.URL.createObjectURL(new Blob([ response ], { type: "application/pdf" }))
-            const link = document.createElement("a")
-            link.href = url
-            link.setAttribute("download", `resume_${interviewReportId}.pdf`)
-            document.body.appendChild(link)
-            link.click()
-        }
-        catch (error) {
-            console.log(error)
+            const download = generateResumePdf({ interviewReportId }).then(response => {
+                const url = window.URL.createObjectURL(new Blob([ response ], { type: "application/pdf" }))
+                const link = document.createElement("a")
+                link.href = url
+                link.setAttribute("download", `resume_${interviewReportId}.pdf`)
+                document.body.appendChild(link)
+                link.click()
+                link.remove()
+                window.setTimeout(() => window.URL.revokeObjectURL(url), 1000)
+            })
+            await toast.promise(download, {
+                loading: 'Preparing your resume PDF...',
+                success: 'Resume PDF downloaded.',
+                error: 'Unable to generate the resume PDF. Please try again.'
+            })
+        } catch (error) {
+            console.error('Resume PDF download failed:', error)
         } finally {
             setLoading(false)
         }
     }
 
     useEffect(() => {
+        if (!enabled) return
         if (interviewId) {
             getReportById(interviewId)
         } else {
             getReports()
         }
-    }, [ interviewId ])
+    }, [ interviewId, enabled ])
 
-    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf }
+    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf, deleteReport }
 
 }
