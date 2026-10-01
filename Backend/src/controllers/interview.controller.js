@@ -33,13 +33,16 @@ async function generateInterViewReportController(req, res) {
         selfDescription,
         jobDescription
     })
+    const fallbackTitle = jobDescription.split(/\r?\n/).map(line => line.trim()).find(Boolean)
+    const title = interViewReportByAi.title?.trim() || fallbackTitle?.slice(0, 120) || "Interview preparation"
 
     const interviewReport = await interviewReportModel.create({
         user: req.user.id,
         resume,
         selfDescription,
         jobDescription,
-        ...interViewReportByAi
+        ...interViewReportByAi,
+        title
     })
 
     res.status(201).json({
